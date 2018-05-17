@@ -5,7 +5,7 @@ import Data.List
 import Data.Char
 import System.Random
 
-data GameState = Loss | InProgress | Win
+data GameState = Loss | InProgress | Win deriving (Eq)
 
 lives = 10
 
@@ -31,10 +31,12 @@ newGame easy med hard = do
     gen <- getStdGen
     let (index, newGen) = randomR (0, length pool) gen
         word = map toUpper (pool !! index)
-        guesses = ""
-    putStrLn word
+    -- putStrLn word
     -- putStrLn (blanks "COMPUTER" "CE")
-    (state, newGuesses) <- processGuess word guesses
+    state <- processGuess word ""
+    let toPrint =   if state == Loss then "You lose... :(" else "You win! :D"
+    putStrLn toPrint
+    putStrLn $ "Word was " ++ word
     
     putStrLn "Okay" 
 
@@ -44,11 +46,13 @@ difficultySelect = do
     difficulty <- getChar
     return $ verifyDifficulty difficulty
 
-processGuess :: String -> String -> IO (GameState, String)
+processGuess :: String -> String -> IO GameState
 processGuess word guessed = do
+    putStrLn $ "--------"
     putStrLn $ "Word: " ++ blanks word guessed
     putStrLn $ "Previous incorrect guesses: "
     putStrLn $ (flatten $ zip (guessedWrong word guessed) (repeat ' '))
+    putStrLn $ "Lives: " ++ show (lives - length (guessedWrong word guessed))
     prompt "Guess: "
     guess <- getChar
     let guess'      = toUpper guess
@@ -56,9 +60,9 @@ processGuess word guessed = do
                         if guess' `elem` word then "Correct!" else "Wrong."
         guessed'    =   if guess' `elem` guessed then guessed else guess':guessed
         state       =   if (takeOutSpaces $ blanks word guessed') == word then Win else
-                        if length guessed' == lives then Loss else InProgress
-        lastAction  = case state of Win         -> return (Win, guessed')
-                                    Loss        -> return (Loss, guessed')
+                        if length (guessedWrong word guessed') == lives then Loss else InProgress
+        lastAction  = case state of Win         -> return Win
+                                    Loss        -> return Loss
                                     InProgress  -> processGuess word guessed'
     putStrLn toPrint
     lastAction
